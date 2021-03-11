@@ -1,0 +1,155 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>全1470個所 いしぶみマップ - 京都市オープンデータ x egmapjs</title>
+<meta property="og:title" content="全1470個所 いしぶみマップ - 京都市オープンデータ x egmapjs">
+<link rel="apple-touch-icon" href="kyotoishibumimap.jpg">
+<meta property="og:image" content="kyotoishibumimap.jpg">
+
+<script type=module>
+import { initMap } from "./egmap.mjs";
+import { CSV } from "https://code4sabae.github.io/js/CSV.js";
+
+function convertTokyo2WGS(o) {
+	if (!o.lat || !o.lng)
+		return
+	let ret = proj4("EPSG:4301", "EPSG:4326", [ parseFloat(o.lng), parseFloat(o.lat) ])
+	o.lat = ret[1]
+	o.lng = ret[0]
+}
+const convertDMS2D = function(o) {
+	if (!o.lat || !o.lng)
+		return
+	const dms2d = function(dms) {
+		// return (Math.floor(dms) + Math.floor(dms * 100) % 100 / 60 + Math.floor(dms * 10000) % 100 / (60 * 60)).toFixed(5)
+		// 度分秒の秒の小数点以下に対応する修正
+		return (Math.floor(dms) + Math.floor(dms * 100) % 100 / 60 + Math.floor(dms * 10000) % 100 / (60 * 60) + Math.floor(dms * 1000000) % 100 / (60 * 60 * 100)).toFixed(6) 
+	}
+	o.lat = dms2d(o.lat)
+	o.lng = dms2d(o.lng)
+}
+const addGSILayer = (map) => {
+	// set 国土地理院地図 https://maps.gsi.go.jp/development/ichiran.html
+	L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png", {
+		attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>"',
+		maxZoom: 18,
+	}).addTo(map);
+};
+window.onload = async () => {
+	const map = initMap("mapid");
+
+	//const url = "https://code4fukui.github.io/kyotoishibumi/ishibumi-data-281211.csv";
+	const url = "https://data.city.kyoto.lg.jp/file/3969/download?token=Tka3iJPr";
+	const csv = await CSV.fetch(url);
+	//dump(csv);
+	const lls = []
+	let cnt = 0
+	for (let i = 1; i < csv.length; i++) {
+		const c = csv[i];
+		const d = {
+			num: c[0],
+			name: c[1],
+			address: c[2],
+			lat: c[3],
+			lng: c[4]
+		};
+		convertDMS2D(d)
+		if (!d.lat || !d.lng) {
+			console.log("err: " + d.name + ", " + d.address + ", " + d.lat + ", " + d.lng)
+			cnt++
+			continue
+		}
+		const name = "<a href=https://www2.city.kyoto.lg.jp/somu/rekishi/fm/ishibumi/html/" + d.num.toLowerCase() + ".html target=_blank rel=noopener>" + d.name + "</a>";
+		map.addIcon(d.lat, d.lng, [ d.num, name, d.address, d.lat + "," + d.lng ].join("<br>"));
+		lls.push([ d.lat, d.lng ]);
+	}
+	if (cnt) {
+		alert("緯度経度変換エラー数:" + cnt);
+	}
+	map.fitBounds(lls);
+
+	let watchid = null
+	gotohere.onclick = function() {
+		if (watchid)  {
+			navigator.geolocation.clearWatch(watchid);
+		}
+		watchid = navigator.geolocation.watchPosition((gpos) => {
+			const pos = [ gpos.coords.latitude, gpos.coords.longitude ];
+			console.log(pos);
+			map.panTo(pos);
+			navigator.geolocation.clearWatch(watchid);
+			watchid = null;
+		}, (e) => {
+			alert("現在位置に取得に失敗！");
+		});
+	}
+};
+</script>
+<style>
+body {
+	margin: 0;
+	font-family: sans-serif;
+	text-align: center;
+	background: white;
+}
+a {
+	color: gray !important;
+}
+h1 {
+	font-size: 3vh;
+	padding: .5vh;
+	margin: 0;
+	color: white;
+	background-color: #9cd;
+}
+#sub {
+	font-size: 4vw;
+}
+#mapid {
+	height: 70vh;
+}
+.leaflet-tile-container { /* 地図の色味変更 CSS3 filter */
+    x-filter: sepia(100%) brightness(95%); /* セピア */
+    x-filter: grayscale(100%) brightness(110%); /* 明るめグレースケール */
+    filter: hue-rotate(-10deg) saturate(70%) brightness(104%); /* いい感じの色？ */
+}
+.leaflet-marker-pane > a {
+	word-break: break-all;
+}
+#debug {
+	text-align: left;
+}
+#tfll {
+	box-sizing: border-box;
+	text-align: center;
+	font-size: 120%;
+	width: 100%;
+	border: 1px solid gray;
+}
+.credit {
+	margin-top: 1vh;
+	font-size: 90%;
+}
+#gotohere {
+	background: orange;
+	color: white;
+	font-weight: bold;
+	padding: 1em;
+	margin: 0.5em;
+}
+</style>
+
+</Head>
+<body>
+<h1>全1470個所 いしぶみマップ</h1>
+<div id="mapid"></div>
+<!--<input type=text id="tfll">-->
+<button id=gotohere>現在位置へ移動</button>
+
+<div class=credit>
+App: <a href=https://fukuno.jig.jp/2437>全1470個所 いしぶみマップ</a> CC BY fukuno.jig.jp<br>
+Data: <a href=https://data.city.kyoto.lg.jp/node/14455>CC BY いしぶみリスト | 京都市オープンデータポータルサイト</a><br>
+Icon: <a href=https://www.irasutoya.com/2016/10/blog-post_315.html>モーセの十戒のイラスト | かわいいフリー素材集 いらすとや</a><br>
+Lib: <a href=https://fukuno.jig.jp/2363>egmapjs</a> CC BY fukuno.jig.jp (<a href=https://github.com/code4fukui/egmapjs>src on GitHub</a>)<br>
+</div>
+
+</body>
+</html>
