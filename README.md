@@ -1,4 +1,7 @@
 # kyotoishibumi
+
+> 日本語のREADMEはこちらです: [README.ja.md](README.ja.md)
+
 Map of 1,470 stone monuments in Kyoto, using Kyoto City open data and egmapjs.
 
 ## Demo
