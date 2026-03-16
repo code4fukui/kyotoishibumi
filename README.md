@@ -17,4 +17,4 @@ Map of 1,470 stone monuments in Kyoto, using Kyoto City open data and egmapjs.
 - Data fetched and displayed using the [egmapjs](https://github.com/code4fukui/egmapjs) library
 
 ## License
-MIT
+MIT License — see [LICENSE](LICENSE).
